@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import csv
+import calendar
 import sqlite3
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-CATEGORIES = ("Shopping", "Food & drinks", "Transport", "Bills", "Entertainment", "Health", "Other")
+CATEGORIES = ("Food & drinks", "Transport", "Books & stationery", "College fees", "Subscriptions", "Shopping", "Bills", "Entertainment", "Health", "Other")
 
 
 def parse_amount(value: str) -> int:
@@ -110,6 +111,48 @@ class WalletStore:
 
     def cards(self):
         return self.db.execute("SELECT * FROM cards ORDER BY id").fetchall()
+
+    def update_transaction(self, item_id, title, amount, category, day):
+        if not title.strip() or len(title.strip()) > 60:
+            raise ValueError('Description must contain 1–60 characters.')
+        if type(amount) is not int or amount == 0:
+            raise ValueError('Enter a nonzero amount.')
+        try:
+            parsed = date.fromisoformat(day)
+        except ValueError as exc:
+            raise ValueError('Use YYYY-MM-DD for the date.') from exc
+        if parsed > date.today():
+            raise ValueError('Transactions cannot be dated in the future.')
+        with self.db:
+            self.db.execute('BEGIN IMMEDIATE')
+            old = self.db.execute('SELECT amount FROM transactions WHERE id=?', (item_id,)).fetchone()
+            if old is None:
+                raise ValueError('This transaction no longer exists.')
+            if self.balance - old['amount'] + amount < 0:
+                raise ValueError('This change would make the wallet balance negative.')
+            self.db.execute('UPDATE transactions SET title=?,amount=?,category=?,day=? WHERE id=?',
+                            (title.strip(), amount, category, parsed.isoformat(), item_id))
+
+    def delete_transaction(self, item_id):
+        with self.db:
+            self.db.execute('BEGIN IMMEDIATE')
+            row = self.db.execute('SELECT amount FROM transactions WHERE id=?', (item_id,)).fetchone()
+            if row is None:
+                raise ValueError('This transaction no longer exists.')
+            if self.balance - row['amount'] < 0:
+                raise ValueError('This income has already been spent. Removing it would make the balance negative.')
+            self.db.execute('DELETE FROM transactions WHERE id=?', (item_id,))
+
+    def budget_summary(self, today=None):
+        today = today or date.today()
+        prefix = today.strftime('%Y-%m')
+        spent = -sum(r['amount'] for r in self.transactions() if r['amount'] < 0 and r['day'].startswith(prefix))
+        budget = int(self.setting('budget', '3000000'))
+        remaining = budget - spent
+        days = calendar.monthrange(today.year, today.month)[1] - today.day + 1
+        available = max(0, min(remaining, self.balance))
+        return {'budget': budget, 'spent': spent, 'remaining': remaining, 'days': days,
+                'daily': available // days, 'ratio': spent / budget if budget else 0}
 
     def add_card(self, name, last4, network, color):
         if not name.strip() or len(name.strip()) > 30:

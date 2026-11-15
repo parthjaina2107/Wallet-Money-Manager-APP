@@ -24,6 +24,31 @@ class WalletTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 parse_amount(value)
 
+    def test_edit_delete_preserve_accounting(self):
+        from datetime import date
+        self.store.add_transaction('Allowance', 100000, 'Income')
+        self.store.add_transaction('Books', -20000, 'Books & stationery')
+        expense = self.store.transactions()[0]
+        income = self.store.transactions()[1]
+        self.store.update_transaction(expense['id'], 'Lab manual', -30000, 'Books & stationery', date.today().isoformat())
+        self.assertEqual(self.store.balance, 70000)
+        with self.assertRaises(ValueError):
+            self.store.delete_transaction(income['id'])
+        with self.assertRaises(ValueError):
+            self.store.update_transaction(expense['id'], 'Too expensive', -100001, 'Other', date.today().isoformat())
+        self.assertEqual(self.store.balance, 70000)
+        self.store.delete_transaction(expense['id'])
+        self.assertEqual(self.store.balance, 100000)
+
+    def test_budget_daily_allowance_cannot_exceed_balance(self):
+        self.store.add_transaction('Allowance', 10000, 'Income')
+        self.store.set_setting('budget', 100000)
+        result = self.store.budget_summary()
+        self.assertEqual(result['daily'], 10000 // result['days'])
+        self.store.add_transaction('Lunch', -9000, 'Food & drinks')
+        self.store.set_setting('budget', 5000)
+        self.assertEqual(self.store.budget_summary()['daily'], 0)
+
     def test_ledger_rejects_overdraft_and_persists(self):
         self.store.add_transaction("Salary", 100000, "Income")
         self.store.add_transaction("Coffee", -2999, "Food & drinks")

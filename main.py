@@ -2,6 +2,7 @@
 import argparse
 import os
 import tkinter as tk
+from datetime import date
 from pathlib import Path
 from tkinter import ttk, messagebox, filedialog
 from wallet_model import WalletStore, CATEGORIES, parse_amount, money
@@ -11,14 +12,19 @@ class WalletApp(tk.Tk):
     def __init__(self, store):
         super().__init__()
         self.store = store
-        self.title('Wallet — Money Manager APP')
-        self.geometry('1050x720')
-        self.minsize(850, 590)
-        self.configure(bg='#f2f4f8')
+        self.title('Pocket Semester | Student Money Journal')
+        self.geometry('1160x820')
+        self.minsize(1050, 720)
+        self.configure(bg='#f5f2e9')
         style = ttk.Style(self)
         style.theme_use('clam')
-        style.configure('TFrame', background='#f2f4f8')
-        style.configure('TLabel', background='#f2f4f8', foreground='#243047', font=('Segoe UI', 11))
+        style.configure('TFrame', background='#f5f2e9')
+        style.configure('TLabel', background='#f5f2e9', foreground='#263f37', font=('Segoe UI', 11))
+        style.configure('TNotebook', background='#f5f2e9', borderwidth=0)
+        style.configure('TNotebook.Tab', padding=(18, 10), font=('Segoe UI', 10, 'bold'))
+        style.map('TNotebook.Tab', background=[('selected', '#214d40')], foreground=[('selected', 'white')])
+        style.configure('Accent.TButton', background='#214d40', foreground='white')
+        style.map('Accent.TButton', background=[('active', '#316552')])
         style.configure('TButton', font=('Segoe UI', 10), padding=9)
         style.configure('Treeview', rowheight=33, font=('Segoe UI', 10), background='white', fieldbackground='white')
         style.configure('Treeview.Heading', font=('Segoe UI', 10, 'bold'), padding=8)
@@ -26,25 +32,43 @@ class WalletApp(tk.Tk):
         outer.pack(fill='both', expand=True)
         header = ttk.Frame(outer)
         header.pack(fill='x')
-        ttk.Label(header, text='My Wallet', font=('Segoe UI', 26, 'bold')).pack(side='left')
+        ttk.Label(header, text='POCKET / SEMESTER', font=('Segoe UI', 25, 'bold')).pack(side='left')
         ttk.Button(header, text='+ Income', command=lambda: self.transaction_form(True)).pack(side='right', padx=(8, 0))
         ttk.Button(header, text='+ Expense', command=lambda: self.transaction_form(False)).pack(side='right')
+        ttk.Label(outer, text='Make your allowance last. Keep the memories, track the spending.', foreground='#67786e').pack(anchor='w', pady=(6, 0))
         summary = ttk.Frame(outer, padding=(0, 20))
         summary.pack(fill='x')
         self.stats = []
-        for title, color in [('Available balance', '#3457b1'), ('Income this month', '#21775c'), ('Expenses this month', '#b85151')]:
+        for title, color in [('01 / AVAILABLE TO YOU', '#214d40'), ('02 / MONEY IN THIS MONTH', '#21775c'), ('03 / MONEY OUT THIS MONTH', '#b85151')]:
             panel = tk.Frame(summary, bg='white', padx=20, pady=15)
             panel.pack(side='left', expand=True, fill='both', padx=(0, 10))
             tk.Label(panel, text=title, bg='white', fg='#6c7483', font=('Segoe UI', 10)).pack(anchor='w')
             value = tk.Label(panel, bg='white', fg=color, font=('Segoe UI', 22, 'bold'))
             value.pack(anchor='w', pady=(8, 0))
             self.stats.append(value)
+        pace = tk.Frame(outer, bg='#214d40', padx=20, pady=14)
+        pace.pack(fill='x', pady=(0, 18))
+        self.pace_text = tk.Label(pace, bg='#214d40', fg='#fff9e8', font=('Segoe UI', 13, 'bold'), anchor='w')
+        self.pace_text.pack(side='left')
+        ttk.Button(pace, text='Set monthly budget', command=self.budget_form).pack(side='right')
         tabs = ttk.Notebook(outer)
         tabs.pack(fill='both', expand=True)
         activity = ttk.Frame(tabs, padding=15)
         cards = ttk.Frame(tabs, padding=15)
         tabs.add(activity, text='  Transactions  ')
         tabs.add(cards, text='  My cards  ')
+        insights = ttk.Frame(tabs, padding=18)
+        tabs.add(insights, text='  Spending story  ')
+        ttk.Label(insights, text='Where did this month go?', font=('Segoe UI', 19, 'bold')).pack(anchor='w')
+        ttk.Label(insights, text='Actual expenses grouped by category — updated after every entry.', foreground='#67786e').pack(anchor='w', pady=(5, 12))
+        chart_frame = ttk.Frame(insights)
+        chart_frame.pack(fill='both', expand=True)
+        self.chart = tk.Canvas(chart_frame, bg='#f5f2e9', highlightthickness=0)
+        chart_scroll = ttk.Scrollbar(chart_frame, orient='vertical', command=self.chart.yview)
+        self.chart.configure(yscrollcommand=chart_scroll.set)
+        chart_scroll.pack(side='right', fill='y')
+        self.chart.pack(side='left', fill='both', expand=True)
+        self.chart.bind('<Configure>', lambda e: self.draw_chart())
         toolbar = ttk.Frame(activity)
         toolbar.pack(fill='x', pady=(0, 12))
         self.query = tk.StringVar()
@@ -61,6 +85,11 @@ class WalletApp(tk.Tk):
         self.transactions.tag_configure('expense', foreground='#a54848')
         self.empty_text = ttk.Label(activity, text='')
         self.empty_text.pack(anchor='w', pady=7)
+        edits = ttk.Frame(activity)
+        edits.pack(fill='x')
+        ttk.Button(edits, text='Edit selected', command=self.edit_transaction).pack(side='left')
+        ttk.Button(edits, text='Delete selected', command=self.delete_transaction).pack(side='left', padx=8)
+        self.transactions.bind('<Double-1>', lambda e: self.edit_transaction())
         card_tools = ttk.Frame(cards)
         card_tools.pack(fill='x', pady=(0, 12))
         ttk.Label(card_tools, text='Store nicknames and last four digits only.').pack(side='left')
@@ -99,11 +128,70 @@ class WalletApp(tk.Tk):
         for label, value in zip(self.stats, (self.store.balance, income, expenses)):
             label.configure(text=money(value))
         self.refresh_transactions()
+        b = self.store.budget_summary()
+        if b['remaining'] < 0:
+            note = 'Over budget by ' + money(-b['remaining'])
+        else:
+            note = money(b['daily']) + ' / day to stay on track'
+        self.pace_text.configure(text=note + f"   ·   {b['days']} days left, including today")
+        self.draw_chart()
         self.cards.delete(*self.cards.get_children())
         for card in self.store.cards():
             self.cards.insert('', 'end', iid=str(card['id']), values=(card['name'], card['network'], '•••• ' + card['last4']))
 
-    def form(self, title, fields, submit):
+    def draw_chart(self):
+        self.chart.delete('all')
+        _, total, categories = self.store.monthly()
+        width = max(500, self.chart.winfo_width())
+        if not categories:
+            self.chart.create_text(18, 40, anchor='w', text='Your first expense will start the story.', fill='#67786e', font=('Segoe UI', 14))
+            return
+        for i, (name, value) in enumerate(categories):
+            y = 22 + i * 48
+            self.chart.create_text(8, y, anchor='w', text=name, fill='#263f37', font=('Segoe UI', 10, 'bold'))
+            self.chart.create_text(width-20, y, anchor='e', text=f'{money(value)}  ·  {value/total:.0%}', fill='#67786e', font=('Segoe UI', 10))
+            self.chart.create_line(8, y+18, width-20, y+18, fill='#e3dfd1', width=7)
+            self.chart.create_line(8, y+18, 8+(width-28)*value/total, y+18, fill=('#32735c','#b78b44','#718a9b')[i%3], width=7)
+        self.chart.configure(scrollregion=(0, 0, width, len(categories)*48+20))
+
+    def budget_form(self):
+        return self.form('Monthly spending budget', [('Budget in ₹', None)],
+                         lambda v: self.store.set_setting('budget', parse_amount(v[0])))
+
+    def selected_transaction(self):
+        selected = self.transactions.selection()
+        if not selected:
+            messagebox.showinfo('Choose an entry', 'Select a transaction first.', parent=self)
+            return None
+        return next((r for r in self.store.transactions() if r['id'] == int(selected[0])), None)
+
+    def edit_transaction(self):
+        row = self.selected_transaction()
+        if row is None:
+            return
+        fields = [('Description', None), ('Amount (₹)', None), ('Date (YYYY-MM-DD)', None)]
+        if row['amount'] < 0:
+            fields.append(('Category', CATEGORIES))
+        def save(v):
+            self.store.update_transaction(row['id'], v[0], parse_amount(v[1]) * (1 if row['amount'] > 0 else -1),
+                                          row['category'] if row['amount'] > 0 else v[3], v[2])
+        initial = [row['title'], f"{abs(row['amount'])/100:.2f}", row['day']]
+        if row['amount'] < 0:
+            initial.append(row['category'])
+        return self.form('Edit journal entry', fields, save, initial)
+
+    def delete_transaction(self):
+        row = self.selected_transaction()
+        if row is None:
+            return
+        if messagebox.askyesno('Delete journal entry', f"Delete '{row['title']}'? This cannot be undone.", parent=self):
+            try:
+                self.store.delete_transaction(row['id'])
+            except ValueError as exc:
+                messagebox.showerror('Cannot delete entry', str(exc), parent=self)
+            self.refresh()
+
+    def form(self, title, fields, submit, initial=None):
         dialog = tk.Toplevel(self)
         dialog.title(title)
         dialog.transient(self)
@@ -113,9 +201,9 @@ class WalletApp(tk.Tk):
         frame.pack(fill='both', expand=True)
         variables = []
         first = None
-        for label, options in fields:
+        for index, (label, options) in enumerate(fields):
             ttk.Label(frame, text=label).pack(anchor='w', pady=(8, 5))
-            value = tk.StringVar(value=options[0] if options else '')
+            value = tk.StringVar(value=initial[index] if initial else (options[0] if options else ''))
             widget = ttk.Combobox(frame, textvariable=value, values=options, state='readonly', width=34) if options else ttk.Entry(frame, textvariable=value, width=37)
             widget.pack(fill='x', ipady=5)
             first = first or widget

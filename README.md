@@ -1,5 +1,11 @@
 # Wallet-Money-Manager-APP
 
+## Pocket Semester — student money journal
+
+The college-project edition adds an original cream-and-forest journal identity, student categories, a monthly budget with a daily spending allowance, category charts, and editable/deletable transaction records with balance protection.
+
+See [SUBMISSION_GUIDE.md](SUBMISSION_GUIDE.md) for the abstract, architecture diagram, database design, algorithms, demonstration script, limitations and viva preparation. The implementation uses only Python's standard library.
+
 A basic Python **Tkinter** desktop app for managing money, expenses and card references. It uses standard widgets, simple forms and a scrollable transaction table. No additional Python packages are required.
 
 ## Run
