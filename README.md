@@ -8,6 +8,28 @@ See [SUBMISSION_GUIDE.md](SUBMISSION_GUIDE.md) for the abstract, architecture di
 
 A basic Python **Tkinter** desktop app for managing money, expenses and card references. It uses standard widgets, simple forms and a scrollable transaction table. No additional Python packages are required.
 
+## UI preview
+
+Actual screenshots of Aster Wallet running on Windows with fictional demo data. Balances, transactions and card references below are examples.
+
+### Transactions and budget
+
+View your balance, monthly totals, daily spending allowance and searchable transaction history.
+
+![Aster Wallet transaction dashboard with balance, budget and expense history](preview/transactions.png)
+
+### My cards
+
+Organize card nicknames, networks and masked last-four-digit references.
+
+![Aster Wallet My cards tab showing three fictional card references](preview/cards.png)
+
+### Spending story
+
+See how monthly expenses are distributed across categories.
+
+![Aster Wallet Spending story with category totals, percentages and bars](preview/spending-story.png)
+
 ## Run
 
 Install Python 3.10+ with Tkinter, then double-click **Start Wallet.bat** on Windows or run:
