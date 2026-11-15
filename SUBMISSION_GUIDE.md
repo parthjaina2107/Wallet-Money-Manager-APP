@@ -1,8 +1,8 @@
-# Pocket Semester — project submission guide
+# Aster Wallet — project submission guide
 
 ## Project abstract
 
-Pocket Semester is an offline student money journal developed with Python, Tkinter and SQLite. It records allowance and expenses, organizes spending into categories, and calculates a suggested daily spending amount from the remaining monthly budget and available wallet balance. A category chart explains spending patterns. The application supports adding, viewing, searching, editing, deleting and exporting transaction records, along with managing masked card references.
+Aster Wallet is an offline student money journal developed with Python, Tkinter and SQLite. It records allowance and expenses, organizes spending into categories, and calculates a suggested daily spending amount from the remaining monthly budget and available wallet balance. A category chart explains spending patterns. The application supports adding, viewing, searching, editing, deleting and exporting transaction records, along with managing masked card references.
 
 ## Problem and objectives
 

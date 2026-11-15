@@ -12,7 +12,7 @@ class WalletApp(tk.Tk):
     def __init__(self, store):
         super().__init__()
         self.store = store
-        self.title('Pocket Semester | Student Money Journal')
+        self.title('Aster Wallet | Student Money Journal')
         self.geometry('1160x820')
         self.minsize(1050, 720)
         self.configure(bg='#f5f2e9')
@@ -32,7 +32,7 @@ class WalletApp(tk.Tk):
         outer.pack(fill='both', expand=True)
         header = ttk.Frame(outer)
         header.pack(fill='x')
-        ttk.Label(header, text='POCKET / SEMESTER', font=('Segoe UI', 25, 'bold')).pack(side='left')
+        ttk.Label(header, text='ASTER WALLET', font=('Segoe UI', 25, 'bold')).pack(side='left')
         ttk.Button(header, text='+ Income', command=lambda: self.transaction_form(True)).pack(side='right', padx=(8, 0))
         ttk.Button(header, text='+ Expense', command=lambda: self.transaction_form(False)).pack(side='right')
         ttk.Label(outer, text='Make your allowance last. Keep the memories, track the spending.', foreground='#67786e').pack(anchor='w', pady=(6, 0))

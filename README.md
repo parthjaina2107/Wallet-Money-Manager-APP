@@ -1,6 +1,6 @@
 # Wallet-Money-Manager-APP
 
-## Pocket Semester — student money journal
+## Aster Wallet — student money journal
 
 The college-project edition adds an original cream-and-forest journal identity, student categories, a monthly budget with a daily spending allowance, category charts, and editable/deletable transaction records with balance protection.
 
