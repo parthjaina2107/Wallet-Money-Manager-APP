@@ -2,7 +2,11 @@
 
 ## Team members
 
-Parth Jaina and Ronit Bhomia
+| Team member | Registration number |
+|---|---|
+| Parth Jaina | RA2511047010069 |
+| Ronit Bhomia | RA2511047010071 |
+| Mohammed Farhan Younus | RA2511047010088 |
 
 ## Project abstract
 

@@ -4,6 +4,14 @@ A standalone **Python Tkinter GUI** for a student wallet interface. It uses Pyth
 
 All interactions change temporary values in the open window. Closing and reopening the app restores the sample values. Nothing you enter is saved or exported.
 
+## Team members
+
+| Team member | Registration number |
+|---|---|
+| Parth Jaina | RA2511047010069 |
+| Ronit Bhomia | RA2511047010071 |
+| Mohammed Farhan Younus | RA2511047010088 |
+
 ## Run
 
 Install Python 3.10 or newer with Tkinter, then double-click **Start Wallet.bat** on Windows, or run:
