@@ -1,80 +1,59 @@
-# Wallet-Money-Manager-APP
+# Aster Wallet
 
-## Aster Wallet — student money journal
+A standalone **Python Tkinter GUI** for a student wallet interface. It uses Python's standard library and opens with fictional sample transactions and a sample card.
 
-The college-project edition adds an original cream-and-forest journal identity, student categories, a monthly budget with a daily spending allowance, category charts, and editable/deletable transaction records with balance protection.
-
-See [SUBMISSION_GUIDE.md](SUBMISSION_GUIDE.md) for the abstract, architecture diagram, database design, algorithms, demonstration script, limitations and viva preparation. The implementation uses only Python's standard library.
-
-A basic Python **Tkinter** desktop app for managing money, expenses and card references. It uses standard widgets, simple forms and a scrollable transaction table. No additional Python packages are required.
-
-## UI preview
-
-Actual screenshots of Aster Wallet running on Windows with fictional demo data. Balances, transactions and card references below are examples.
-
-### Transactions and budget
-
-View your balance, monthly totals, daily spending allowance and searchable transaction history.
-
-![Aster Wallet transaction dashboard with balance, budget and expense history](preview/transactions.png)
-
-### My cards
-
-Organize card nicknames, networks and masked last-four-digit references.
-
-![Aster Wallet My cards tab showing three fictional card references](preview/cards.png)
-
-### Spending story
-
-See how monthly expenses are distributed across categories.
-
-![Aster Wallet Spending story with category totals, percentages and bars](preview/spending-story.png)
+All interactions change temporary values in the open window. Closing and reopening the app restores the sample values. Nothing you enter is saved or exported.
 
 ## Run
 
-Install Python 3.10+ with Tkinter, then double-click **Start Wallet.bat** on Windows or run:
+Install Python 3.10 or newer with Tkinter, then double-click **Start Wallet.bat** on Windows, or run:
 
 ```powershell
 py main.py
 ```
 
-On macOS/Linux use `python3 main.py`. Linux may require your distribution's `python3-tk` package.
+On macOS/Linux, run `python3 main.py`. Your Linux distribution may require the `python3-tk` package. No pip packages are required.
 
-## Features
+## Interface
 
-- Available balance and monthly income/expense totals in INR.
-- Add income and categorized expenses with validation and overdraft protection.
-- Search transaction descriptions or categories; filter income and expenses.
-- Export all transactions to CSV.
-- Add/remove card references using a nickname, network and last four digits.
-- Automatic local SQLite storage; exact amounts stored as integer paise.
-- Ctrl+N opens the expense form. Enter saves a form; Escape closes it.
+- Cream and forest-green theme with balance, income and expense displays.
+- Transactions tab with search, income/expense filtering and interactive forms.
+- Add, edit or remove sample entries and see the display update.
+- My cards tab with masked references and add/remove controls.
+- Spending story tab with a scrollable Tkinter Canvas category chart.
+- Monthly budget dialog and immediate input feedback.
+- Ctrl+N opens the expense form. Enter submits a form and Escape closes it.
 
-The app starts with an empty wallet. For a separate demo wallet:
+## UI screenshots
 
-```powershell
-py main.py --data demo.db --demo
-```
+Screenshots show fictional values from the GUI demo.
 
-`--demo` seeds a new database only. It never overwrites existing entries.
+### Transactions
 
-## Data
+![Aster Wallet GUI transaction screen](preview/transactions.png)
 
-Windows stores data in `%LOCALAPPDATA%\WalletMoneyManagerApp\wallet.db`. Other platforms use `~/.local/share/WalletMoneyManagerApp/wallet.db`. This is separate from the advanced Aster Wallet app. Use `--data PATH` to choose a database.
+### My cards
 
-The balance is a personal ledger; card references do not have separate account balances. This app does not connect to banks or process payments. Local data is not encrypted. Store only the last four card digits, never full numbers, PINs or CVVs. Databases and exports are excluded from Git.
+![Aster Wallet GUI card references](preview/cards.png)
 
-## Files and tests
+### Spending story
 
-- `main.py`: basic Tkinter interface and launch options.
-- `wallet_model.py`: storage, validation, totals and export.
-- `test_wallet.py`: data-layer tests.
-- `test_app.py`: integration checks using a temporary database.
+![Aster Wallet GUI category chart](preview/spending-story.png)
+
+## Project files
+
+- `main.py`: the complete GUI, sample values and widget callbacks.
+- `test_app.py`: checks that exercise the actual Tkinter controls.
+- `Start Wallet.bat`: Windows launcher.
+- `SUBMISSION_GUIDE.md`: project explanation and demonstration steps.
+- `preview/`: screenshots of the interface.
+
+## Verification
 
 ```powershell
 py -m unittest -v
 ```
 
-UI tests briefly open a test window. They never access your personal wallet.
+Tests briefly open Tkinter windows. They check navigation, search, form validation, edits, removal, cards, budget changes and reset on reopening.
 
-For the advanced animated version, see [Wallet-Money-Manager-UI](https://github.com/parthjaina2107/Wallet-Money-Manager-UI).
+See [the submission guide](SUBMISSION_GUIDE.md) for the college demonstration.

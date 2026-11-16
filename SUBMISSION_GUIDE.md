@@ -1,93 +1,57 @@
-# Aster Wallet — project submission guide
+# Aster Wallet: Tkinter GUI project
+
+## Team members
+
+Parth Jaina and Ronit Bhomia
 
 ## Project abstract
 
-Aster Wallet is an offline student money journal developed with Python, Tkinter and SQLite. It records allowance and expenses, organizes spending into categories, and calculates a suggested daily spending amount from the remaining monthly budget and available wallet balance. A category chart explains spending patterns. The application supports adding, viewing, searching, editing, deleting and exporting transaction records, along with managing masked card references.
+Aster Wallet demonstrates a student wallet interface using Python and Tkinter. It displays sample balances and transactions, provides interactive entry forms, shows masked card references and draws category spending bars. All changes exist only while the window is open. Reopening the application restores the fictional samples.
 
-## Problem and objectives
+## Scope and objectives
 
-Students often record purchases in scattered notes and cannot easily tell how much allowance remains. This project provides a single local ledger with immediate balance updates and understandable spending feedback.
+This project focuses on GUI design, layout, event handling, navigation and form validation. The application consists of one Python file and uses only standard-library modules. Its entry forms update temporary Python lists inside the window class so each interaction can be demonstrated.
 
-Objectives: accurate calculations, persistent storage, input validation, clear navigation, a useful student-specific budget calculation, and maintainable code that can be demonstrated offline.
+## Interface components
 
-## Architecture
-
-```mermaid
-flowchart LR
-    User --> UI[Tkinter forms and tables]
-    UI --> Model[WalletStore: validation and calculations]
-    Model --> DB[(SQLite database)]
-    Model --> CSV[CSV export]
-    Model --> UI
-```
-
-`main.py` handles interface widgets and events. `wallet_model.py` handles storage and money rules. Automated tests use disposable databases, keeping real records separate.
-
-## Database design
-
-| Table | Key fields | Purpose |
+| Component | Tkinter widgets | Purpose |
 |---|---|---|
-| transactions | id, title, amount, category, day | Signed ledger entries; positive income, negative expense |
-| cards | id, name, last4, network, color | Card references; no full card number |
-| settings | key, value | Monthly budget and application preferences |
+| Dashboard | Frame, Label | Display sample balance and monthly totals |
+| Navigation | ttk.Notebook | Switch between three views |
+| Transactions and cards | ttk.Treeview, Scrollbar | Show rows and select items |
+| Search and forms | Entry, Combobox, StringVar | Collect text and filter the displayed entries |
+| Dialogs | Toplevel, Button, messagebox | Add, edit, confirm or cancel changes |
+| Spending story | Canvas, Scrollbar | Draw category labels and proportional bars |
 
-Amounts are integer paise. Transaction dates use ISO format. Balance is computed from the ledger rather than stored as a second potentially inconsistent value. SQL values are supplied through parameters. The card color field is retained for compatibility with the shared storage format.
+## How interaction works
 
-## Main algorithms
+Tkinter's main loop listens for events. A button invokes its callback, which reads the form values and displays validation feedback when necessary. Valid input changes temporary sample values, then refreshes the labels, tables and chart. Decimal values keep the displayed currency calculations exact.
 
-1. Balance = sum of all signed transaction amounts.
-2. Monthly spending = absolute sum of negative entries in the current month.
-3. Remaining budget = monthly budget minus monthly spending.
-4. Spendable amount = max(0, min(remaining budget, current wallet balance)).
-5. Suggested daily allowance = spendable amount divided by remaining calendar days, including today; integer division keeps the result within the budget.
-6. An edit checks `current balance - old amount + new amount >= 0` before saving.
-7. A deletion checks `current balance - deleted amount >= 0`, preventing removal of income already spent.
+## Demonstration
 
-The daily allowance is a simple planning indicator, not financial advice or a prediction of future income.
+1. Run `py main.py` and explain the sample balance of ₹4,350.
+2. Search for the lab manual and switch between income and expenses.
+3. Add a sample expense and show the updated labels and chart.
+4. Edit the lab manual from ₹400 to ₹350.
+5. Enter invalid text or an expense above the displayed balance to show feedback.
+6. Add a fictional card reference using the last four digits only, then remove it.
+7. Change the demo monthly budget.
+8. Close and reopen the application to show that sample values reset.
 
-## Five-minute demonstration
+## Verification
 
-Use `py main.py --data college-demo.db` to create an isolated empty demonstration wallet.
+Run `py -m unittest -v`. The tests open real Tkinter windows and exercise the visible controls, navigation, validation and reset behavior.
 
-1. Introduce the student problem and the three tabs.
-2. Add ₹5,000 as monthly allowance; show the updated balance.
-3. Set the monthly budget to ₹3,000.
-4. Add ₹150 for lunch, ₹400 for a lab manual and ₹100 for bus travel.
-5. Open Spending story and explain category proportions and the daily allowance.
-6. Search for the lab manual, edit its amount to ₹350 and show recalculation.
-7. Attempt an expense larger than the balance; explain validation.
-8. Add a dummy card reference with last four digits `1234`, then remove it.
-9. Export CSV, close the application and reopen the same database to demonstrate persistence.
-10. Run `py -m unittest -v` and explain one accounting test and one GUI integration test.
+## Viva preparation
 
-## Testing and evidence
+- `Tk` creates the main window and `mainloop` dispatches GUI events.
+- `ttk` provides themed controls such as Notebook, Treeview and Combobox.
+- `pack` and padding arrange widgets and control how they expand.
+- `StringVar` links input values to callbacks used by search and forms.
+- `Toplevel` creates forms that belong to the main window.
+- `Canvas` draws the category chart using text and lines.
+- Sample values stay in Python lists attached to the window object.
 
-Tests cover decimal input, negative/invalid amounts, overdrafts, edit/delete accounting, search, CSV formula escaping, card validation, persistence and saving through the actual income form. Run the suite and record its actual output for your submission. Capture your own screenshots of the demo and insert them into your college's required report format.
+## Submission notes
 
-## Viva questions to prepare
-
-- Why SQLite? It is embedded, persistent, requires no server and supports transactions.
-- Why integer paise? Binary floating-point arithmetic can introduce rounding errors in currency calculations.
-- How does Tkinter update the GUI? The event loop dispatches callbacks; forms call the model and refresh displayed data.
-- What is CRUD here? Create an entry, read/search it, update it using Edit, and delete it after confirmation.
-- Why use a database transaction? A validation check and its dependent write must succeed together; write locking protects the balance check from competing writers.
-- What prevents SQL injection? User-supplied values use parameterized SQL statements.
-- Why are test databases temporary? Tests should be repeatable and must not modify personal records.
-- What happens if income is deleted? Deletion is rejected if the resulting balance would be negative.
-- What is the difference between budget and balance? Budget is a spending limit; balance is money remaining in the ledger.
-- Does it connect to a bank? No. Users enter transactions manually.
-
-## Limitations and possible improvements
-
-The app is single-user, INR-only and local. It does not encrypt its database, synchronize devices, reconcile bank transactions or handle transfers between accounts. Deletion has confirmation but no undo or audit log. Large transaction lists currently use Python-side filtering. Possible extensions include SQL-backed pagination, recurring expenses, encrypted backups and multiple wallets.
-
-## Submission checklist
-
-- Add your actual name, roll number, course and supervisor to the college cover sheet.
-- Map the implemented features to your institution's rubric.
-- Include source, README, database design, screenshots, actual test output and references.
-- Explain any reused code and AI assistance according to your college's rules.
-- Rehearse the demo and modify a small feature yourself so you can explain the code confidently.
-- Exclude your personal database and financial records from the submission.
-
-References: Python Tkinter documentation, Python sqlite3 documentation, Python decimal documentation and the SQLite documentation. The visual identity is an original cream-and-forest student journal theme.
+Include the source, screenshots and actual verification output. Add your course and roll numbers as required. Explain reused code and AI assistance according to your college's rules. Present this as a GUI demonstration, with temporary sample interactions.

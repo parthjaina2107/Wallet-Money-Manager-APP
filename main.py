@@ -1,18 +1,44 @@
-"""Basic wallet manager, using only Python's standard library."""
-import argparse
-import os
+"""Aster Wallet: a standalone Tkinter GUI with temporary demo values."""
 import tkinter as tk
 from datetime import date
-from pathlib import Path
-from tkinter import ttk, messagebox, filedialog
-from wallet_model import WalletStore, CATEGORIES, parse_amount, money
+from tkinter import ttk, messagebox
+from decimal import Decimal, InvalidOperation
+
+CATEGORIES = ('Food & drinks', 'Transport', 'Books & stationery', 'College fees',
+              'Subscriptions', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other')
+
+
+def money(value):
+    return f'₹{value:,.2f}'
+
+
+def parse_amount(text):
+    try:
+        value = Decimal(text)
+        if not value.is_finite() or not Decimal('0') < value <= Decimal('999999999'):
+            raise ValueError('Enter an amount between 0.01 and 999,999,999.')
+        if value != value.quantize(Decimal('0.01')):
+            raise ValueError('Use at most two decimal places.')
+        return value
+    except InvalidOperation as exc:
+        raise ValueError('Enter a valid amount, for example 150.50.') from exc
 
 
 class WalletApp(tk.Tk):
-    def __init__(self, store):
+    def __init__(self):
         super().__init__()
-        self.store = store
-        self.title('Aster Wallet | Student Money Journal')
+        today = date.today().isoformat()
+        self.entries = [
+            {'id': 1, 'title': 'Monthly allowance', 'amount': Decimal('5000'), 'category': 'Income', 'day': today},
+            {'id': 2, 'title': 'Lunch with friends', 'amount': Decimal('-150'), 'category': 'Food & drinks', 'day': today},
+            {'id': 3, 'title': 'Lab manual', 'amount': Decimal('-400'), 'category': 'Books & stationery', 'day': today},
+            {'id': 4, 'title': 'Bus travel', 'amount': Decimal('-100'), 'category': 'Transport', 'day': today},
+        ]
+        self.card_items = [{'id': 1, 'name': 'Campus card', 'network': 'VISA', 'last4': '1234'}]
+        self.next_entry_id = 5
+        self.next_card_id = 2
+        self.budget = Decimal('3000')
+        self.title('Aster Wallet | Tkinter GUI Demo')
         self.geometry('1160x820')
         self.minsize(1050, 720)
         self.configure(bg='#f5f2e9')
@@ -35,7 +61,7 @@ class WalletApp(tk.Tk):
         ttk.Label(header, text='ASTER WALLET', font=('Segoe UI', 25, 'bold')).pack(side='left')
         ttk.Button(header, text='+ Income', command=lambda: self.transaction_form(True)).pack(side='right', padx=(8, 0))
         ttk.Button(header, text='+ Expense', command=lambda: self.transaction_form(False)).pack(side='right')
-        ttk.Label(outer, text='Make your allowance last. Keep the memories, track the spending.', foreground='#67786e').pack(anchor='w', pady=(6, 0))
+        ttk.Label(outer, text='Explore your wallet interface with sample values.', foreground='#67786e').pack(anchor='w', pady=(6, 0))
         summary = ttk.Frame(outer, padding=(0, 20))
         summary.pack(fill='x')
         self.stats = []
@@ -51,7 +77,9 @@ class WalletApp(tk.Tk):
         self.pace_text = tk.Label(pace, bg='#214d40', fg='#fff9e8', font=('Segoe UI', 13, 'bold'), anchor='w')
         self.pace_text.pack(side='left')
         ttk.Button(pace, text='Set monthly budget', command=self.budget_form).pack(side='right')
+        ttk.Label(outer, text='Interactive GUI demo  •  Changes reset when you close the window', foreground='#67786e').pack(side='bottom', anchor='w', pady=(12, 0))
         tabs = ttk.Notebook(outer)
+        self.tabs = tabs
         tabs.pack(fill='both', expand=True)
         activity = ttk.Frame(tabs, padding=15)
         cards = ttk.Frame(tabs, padding=15)
@@ -60,7 +88,7 @@ class WalletApp(tk.Tk):
         insights = ttk.Frame(tabs, padding=18)
         tabs.add(insights, text='  Spending story  ')
         ttk.Label(insights, text='Where did this month go?', font=('Segoe UI', 19, 'bold')).pack(anchor='w')
-        ttk.Label(insights, text='Actual expenses grouped by category — updated after every entry.', foreground='#67786e').pack(anchor='w', pady=(5, 12))
+        ttk.Label(insights, text='Sample expenses grouped by category — updates as you try the forms.', foreground='#67786e').pack(anchor='w', pady=(5, 12))
         chart_frame = ttk.Frame(insights)
         chart_frame.pack(fill='both', expand=True)
         self.chart = tk.Canvas(chart_frame, bg='#f5f2e9', highlightthickness=0)
@@ -79,16 +107,15 @@ class WalletApp(tk.Tk):
         chooser.pack(side='left', padx=10)
         self.query.trace_add('write', lambda *args: self.refresh_transactions())
         chooser.bind('<<ComboboxSelected>>', lambda e: self.refresh_transactions())
-        ttk.Button(toolbar, text='Export CSV', command=self.export).pack(side='right')
+        self.empty_text = ttk.Label(activity, text='')
+        self.empty_text.pack(side='bottom', anchor='w', pady=7)
+        edits = ttk.Frame(activity)
+        edits.pack(side='bottom', fill='x')
+        ttk.Button(edits, text='Edit selected', command=self.edit_transaction).pack(side='left')
+        ttk.Button(edits, text='Delete selected', command=self.delete_transaction).pack(side='left', padx=8)
         self.transactions = self.table(activity, ('Date', 'Description', 'Category', 'Amount'), (110, 340, 160, 145))
         self.transactions.tag_configure('income', foreground='#21775c')
         self.transactions.tag_configure('expense', foreground='#a54848')
-        self.empty_text = ttk.Label(activity, text='')
-        self.empty_text.pack(anchor='w', pady=7)
-        edits = ttk.Frame(activity)
-        edits.pack(fill='x')
-        ttk.Button(edits, text='Edit selected', command=self.edit_transaction).pack(side='left')
-        ttk.Button(edits, text='Delete selected', command=self.delete_transaction).pack(side='left', padx=8)
         self.transactions.bind('<Double-1>', lambda e: self.edit_transaction())
         card_tools = ttk.Frame(cards)
         card_tools.pack(fill='x', pady=(0, 12))
@@ -96,7 +123,6 @@ class WalletApp(tk.Tk):
         ttk.Button(card_tools, text='Remove selected', command=self.remove_card).pack(side='right', padx=(8, 0))
         ttk.Button(card_tools, text='+ Add card', command=self.card_form).pack(side='right')
         self.cards = self.table(cards, ('Nickname', 'Network', 'Last four digits'), (400, 180, 180))
-        ttk.Label(outer, text='Saved automatically on this device  •  INR  •  Personal ledger', foreground='#778091').pack(anchor='w', pady=(15, 0))
         self.bind('<Control-n>', lambda e: self.transaction_form(False))
         self.protocol('WM_DELETE_WINDOW', self.close)
         self.refresh()
@@ -116,7 +142,11 @@ class WalletApp(tk.Tk):
 
     def refresh_transactions(self):
         self.transactions.delete(*self.transactions.get_children())
-        rows = self.store.transactions(self.query.get().strip(), self.kind.get())
+        query = self.query.get().strip().casefold()
+        kind = self.kind.get()
+        rows = [row for row in reversed(self.entries)
+                if query in (row['title'] + ' ' + row['category']).casefold()
+                and (kind == 'All' or (row['amount'] > 0) == (kind == 'Income'))]
         for row in rows:
             incoming = row['amount'] > 0
             self.transactions.insert('', 'end', iid=str(row['id']), values=(row['day'], row['title'], row['category'],
@@ -124,46 +154,42 @@ class WalletApp(tk.Tk):
         self.empty_text.configure(text=f'{len(rows)} transaction(s)' if rows else 'No transactions found. Add an income entry to get started.')
 
     def refresh(self):
-        income, expenses, _ = self.store.monthly()
-        for label, value in zip(self.stats, (self.store.balance, income, expenses)):
+        income, expenses, _ = self.monthly_values()
+        for label, value in zip(self.stats, (self.balance, income, expenses)):
             label.configure(text=money(value))
         self.refresh_transactions()
-        b = self.store.budget_summary()
-        if b['remaining'] < 0:
-            note = 'Over budget by ' + money(-b['remaining'])
-        else:
-            note = money(b['daily']) + ' / day to stay on track'
-        self.pace_text.configure(text=note + f"   ·   {b['days']} days left, including today")
+        self.pace_text.configure(text=f'Demo monthly budget: {money(self.budget)}   ·   Spent: {money(expenses)}')
         self.draw_chart()
         self.cards.delete(*self.cards.get_children())
-        for card in self.store.cards():
+        for card in self.card_items:
             self.cards.insert('', 'end', iid=str(card['id']), values=(card['name'], card['network'], '•••• ' + card['last4']))
 
     def draw_chart(self):
         self.chart.delete('all')
-        _, total, categories = self.store.monthly()
+        _, total, categories = self.monthly_values()
         width = max(500, self.chart.winfo_width())
         if not categories:
             self.chart.create_text(18, 40, anchor='w', text='Your first expense will start the story.', fill='#67786e', font=('Segoe UI', 14))
+            self.chart.configure(scrollregion=(0, 0, width, 80))
             return
         for i, (name, value) in enumerate(categories):
             y = 22 + i * 48
             self.chart.create_text(8, y, anchor='w', text=name, fill='#263f37', font=('Segoe UI', 10, 'bold'))
             self.chart.create_text(width-20, y, anchor='e', text=f'{money(value)}  ·  {value/total:.0%}', fill='#67786e', font=('Segoe UI', 10))
             self.chart.create_line(8, y+18, width-20, y+18, fill='#e3dfd1', width=7)
-            self.chart.create_line(8, y+18, 8+(width-28)*value/total, y+18, fill=('#32735c','#b78b44','#718a9b')[i%3], width=7)
+            self.chart.create_line(8, y+18, 8+(width-28)*float(value/total), y+18, fill=('#32735c','#b78b44','#718a9b')[i%3], width=7)
         self.chart.configure(scrollregion=(0, 0, width, len(categories)*48+20))
 
     def budget_form(self):
         return self.form('Monthly spending budget', [('Budget in ₹', None)],
-                         lambda v: self.store.set_setting('budget', parse_amount(v[0])))
+                         lambda v: setattr(self, 'budget', parse_amount(v[0])))
 
     def selected_transaction(self):
         selected = self.transactions.selection()
         if not selected:
             messagebox.showinfo('Choose an entry', 'Select a transaction first.', parent=self)
             return None
-        return next((r for r in self.store.transactions() if r['id'] == int(selected[0])), None)
+        return next((r for r in self.entries if r['id'] == int(selected[0])), None)
 
     def edit_transaction(self):
         row = self.selected_transaction()
@@ -173,9 +199,16 @@ class WalletApp(tk.Tk):
         if row['amount'] < 0:
             fields.append(('Category', CATEGORIES))
         def save(v):
-            self.store.update_transaction(row['id'], v[0], parse_amount(v[1]) * (1 if row['amount'] > 0 else -1),
-                                          row['category'] if row['amount'] > 0 else v[3], v[2])
-        initial = [row['title'], f"{abs(row['amount'])/100:.2f}", row['day']]
+            title = self.checked_title(v[0])
+            amount = parse_amount(v[1]) * (1 if row['amount'] > 0 else -1)
+            day = date.fromisoformat(v[2])
+            if day > date.today():
+                raise ValueError('Choose today or an earlier date.')
+            if self.balance - row['amount'] + amount < 0:
+                raise ValueError('This change exceeds the displayed balance.')
+            row.update(title=title, amount=amount, day=day.isoformat(),
+                       category=row['category'] if amount > 0 else v[3])
+        initial = [row['title'], f"{abs(row['amount']):.2f}", row['day']]
         if row['amount'] < 0:
             initial.append(row['category'])
         return self.form('Edit journal entry', fields, save, initial)
@@ -186,7 +219,9 @@ class WalletApp(tk.Tk):
             return
         if messagebox.askyesno('Delete journal entry', f"Delete '{row['title']}'? This cannot be undone.", parent=self):
             try:
-                self.store.delete_transaction(row['id'])
+                if self.balance - row['amount'] < 0:
+                    raise ValueError('Removing this income would make the displayed balance negative.')
+                self.entries.remove(row)
             except ValueError as exc:
                 messagebox.showerror('Cannot delete entry', str(exc), parent=self)
             self.refresh()
@@ -213,7 +248,7 @@ class WalletApp(tk.Tk):
         def save(event=None):
             try:
                 submit([v.get().strip() for v in variables])
-            except (ValueError, OSError) as exc:
+            except ValueError as exc:
                 error.configure(text=str(exc))
                 return
             dialog.destroy()
@@ -232,12 +267,19 @@ class WalletApp(tk.Tk):
         if not incoming:
             fields.append(('Category', CATEGORIES))
         def save(values):
-            self.store.add_transaction(values[0], parse_amount(values[1]) * (1 if incoming else -1), 'Income' if incoming else values[2])
+            title = self.checked_title(values[0])
+            amount = parse_amount(values[1]) * (1 if incoming else -1)
+            if self.balance + amount < 0:
+                raise ValueError('This expense exceeds the displayed balance.')
+            self.entries.append({'id': self.next_entry_id, 'title': title, 'amount': amount,
+                                 'category': 'Income' if incoming else values[2],
+                                 'day': date.today().isoformat()})
+            self.next_entry_id += 1
         return self.form('Add income' if incoming else 'Add expense', fields, save)
 
     def card_form(self):
         return self.form('Add card reference', [('Nickname', None), ('Last four digits', None), ('Network', ('VISA', 'Mastercard', 'RuPay'))],
-                         lambda v: self.store.add_card(v[0], v[1], v[2], '#3457b1'))
+                         self.add_card_preview)
 
     def remove_card(self):
         selected = self.cards.selection()
@@ -245,32 +287,39 @@ class WalletApp(tk.Tk):
             messagebox.showinfo('Select a card', 'Select a card to remove.', parent=self)
             return
         if messagebox.askyesno('Remove card', 'Remove this card reference?', parent=self):
-            self.store.remove('cards', int(selected[0]))
+            self.card_items = [c for c in self.card_items if c['id'] != int(selected[0])]
             self.refresh()
 
-    def export(self):
-        path = filedialog.asksaveasfilename(parent=self, defaultextension='.csv', initialfile='wallet-transactions.csv', filetypes=[('CSV file', '*.csv')])
-        if path:
-            try:
-                self.store.export_csv(path)
-            except OSError as exc:
-                messagebox.showerror('Export failed', str(exc), parent=self)
-            else:
-                messagebox.showinfo('Export complete', 'All transactions exported.', parent=self)
+    @property
+    def balance(self):
+        return sum((row['amount'] for row in self.entries), Decimal('0'))
+
+    def monthly_values(self):
+        rows = [r for r in self.entries if r['day'].startswith(date.today().strftime('%Y-%m'))]
+        income = sum((r['amount'] for r in rows if r['amount'] > 0), Decimal('0'))
+        categories = {}
+        for row in rows:
+            if row['amount'] < 0:
+                categories[row['category']] = categories.get(row['category'], Decimal('0')) - row['amount']
+        return income, sum(categories.values(), Decimal('0')), sorted(categories.items(), key=lambda item: -item[1])
+
+    @staticmethod
+    def checked_title(text):
+        if not text.strip() or len(text.strip()) > 60:
+            raise ValueError('Use a description between 1 and 60 characters.')
+        return text.strip()
+
+    def add_card_preview(self, values):
+        name = self.checked_title(values[0])
+        if len(values[1]) != 4 or not values[1].isascii() or not values[1].isdigit():
+            raise ValueError('Enter exactly four digits.')
+        self.card_items.append({'id': self.next_card_id, 'name': name,
+                                'last4': values[1], 'network': values[2]})
+        self.next_card_id += 1
 
     def close(self):
-        self.store.close()
         self.destroy()
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Basic wallet and expense manager')
-    parser.add_argument('--data', type=Path, help='Custom database path')
-    parser.add_argument('--demo', action='store_true', help='Include sample entries in a new database')
-    args = parser.parse_args()
-    base = Path(os.environ.get('LOCALAPPDATA', str(Path.home() / '.local' / 'share'))) / 'WalletMoneyManagerApp'
-    WalletApp(WalletStore(args.data or base / 'wallet.db', demo=args.demo)).mainloop()
-
-
 if __name__ == '__main__':
-    main()
+    WalletApp().mainloop()
